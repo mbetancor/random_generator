@@ -1,0 +1,68 @@
+-module(list_comprehension).
+-compile([export_all]).
+
+%% TODO: between REM and DIV, ONLY INTEGERS!! NEVER FLOATS.
+
+chosen_OPS(Ops) -> Num = random:uniform(length(Ops)), 
+	Elem = lists:nth(random:uniform(length(Ops)),Ops),
+	[Elem | chosen_OPS(Num,Ops)].
+chosen_OPS(0,_) -> [];
+chosen_OPS(Num,Ops) -> 	
+[lists:nth(random:uniform(length(Ops)),Ops)| chosen_OPS(Num-1,Ops)].
+
+chosen_COMP(Comps) -> lists:nth(random:uniform(length(Comps)),Comps).
+
+do_OPS([]) ->  case random:uniform(2) of
+		1 -> io:fwrite("~f ",[random:uniform()]);
+		_ -> io:fwrite("~p ",[random:uniform(100000)])
+	end;
+
+do_OPS([H|T]) -> 
+	case random:uniform(2) of
+		1 -> io:fwrite("~f ~s ",[random:uniform(), H]);
+		_ -> io:fwrite("~p ~s ",[random:uniform(100000), H])
+	end,
+	do_OPS(T).
+
+generate() ->
+	Operators = ["+" ,"*", "-", "div", "rem"],
+	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
+	%% chosen_OPS(Comparators) ++ chosen_OPS(Operators).
+	%% COMPS = chosen_COMPS(Comparators),
+	do_OPS(chosen_OPS(Operators)).
+
+generate2() ->
+	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
+	do_OPS([chosen_COMP(Comparators)]).
+
+% GENERATES VAR ASSIGNATIONS
+generate3() -> 
+	Variables = ["X","Y","Z","M","N","O","P","Q","R","S","T"],
+	List = lists:sublist(Variables,random:uniform(10)),
+	do_VARS(List).
+
+do_VARS([]) -> io:fwrite("~s",[" "]);
+do_VARS([H|T]) -> io:fwrite("~n ~s = ",[H]), 
+				generate(),
+				do_VARS(T).
+
+% DATA TYPES: Tuple, Map, List, 
+generate4() -> 
+	case random:uniform(2) of
+		1 ->  io:fwrite("~p", [ list_to_tuple(generate_Nums(random:uniform(10)))]);
+		_ -> io:fwrite("~p", [generate_Nums(random:uniform(10))])
+		end. 
+
+% generate_Args() -> 
+%	Variables = ["X","Y","Z","M","N","O","P","Q","R","S","T"].
+
+generate_Nums(0) -> [];
+generate_Nums(N) -> [random:uniform(1000)|generate_Nums(N-1)].
+	
+generate_SIMPLE() ->
+	{OP, NUM} = generate_compOps(),
+	io:fwrite("~s~s~p~s~p~s", [ "[ X ", OP , NUM, "|| X <- ", generate_Nums(random:uniform(10)) ," ]"]).
+
+generate_compOps() -> 
+	Operators = ["+" ,"*", "-", "div", "rem"],
+	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(80)}.
