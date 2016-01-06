@@ -1,7 +1,10 @@
 -module(list_comprehension).
 -compile([export_all]).
 
-%% TODO: between REM and DIV, ONLY INTEGERS!! NEVER FLOATS.
+%% TODO: PARENTHESIS BETWEEN OPS!!!
+
+%% IDEA PARA PARENTHESIS:
+%%  random:uniform(4) abrir y cerrar paréntesis al azar.
 
 chosen_OPS(Ops) -> Num = random:uniform(length(Ops)), 
 	Elem = lists:nth(random:uniform(length(Ops)),Ops),
@@ -24,12 +27,23 @@ do_OPS([H|T]) ->
 	end,
 	do_OPS(T).
 
+do_SP_OPS([]) -> io:fwrite("~p ",[random:uniform(100000)]);	
+
+do_SP_OPS([H|T]) -> 
+	io:fwrite("~p ~s ",[random:uniform(100000), H]),
+	do_SP_OPS(T).
+
+
 generate() ->
-	Operators = ["+" ,"*", "-", "div", "rem"],
+	Operators = ["/" ,"*", "-", "+"],
+	Operators_INT = [ "rem", "div","*", "-", "+"],
 	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
 	%% chosen_OPS(Comparators) ++ chosen_OPS(Operators).
 	%% COMPS = chosen_COMPS(Comparators),
-	do_OPS(chosen_OPS(Operators)).
+	case random:uniform(2) of
+		1 -> do_OPS(chosen_OPS(Operators));
+		_ -> do_SP_OPS(chosen_OPS(Operators_INT))
+	end.
 
 generate2() ->
 	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
@@ -49,7 +63,7 @@ do_VARS([H|T]) -> io:fwrite("~n ~s = ",[H]),
 % DATA TYPES: Tuple, Map, List, 
 generate4() -> 
 	case random:uniform(2) of
-		1 ->  io:fwrite("~p", [ list_to_tuple(generate_Nums(random:uniform(10)))]);
+		1 -> io:fwrite("~p", [list_to_tuple(generate_Nums(random:uniform(10)))]);
 		_ -> io:fwrite("~p", [generate_Nums(random:uniform(10))])
 		end. 
 
@@ -61,8 +75,8 @@ generate_Nums(N) -> [random:uniform(1000)|generate_Nums(N-1)].
 	
 generate_SIMPLE() ->
 	{OP, NUM} = generate_compOps(),
-	io:fwrite("~s~s~p~s~p~s", [ "[ X ", OP , NUM, "|| X <- ", generate_Nums(random:uniform(10)) ," ]"]).
+	io:fwrite("~s~s~s~p~s~p~s", [ "[ X ", OP ," ", NUM, " || X <- ", generate_Nums(random:uniform(10)) ," ]"]).
 
 generate_compOps() -> 
 	Operators = ["+" ,"*", "-", "div", "rem"],
-	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(80)}.
+	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(100)}.
