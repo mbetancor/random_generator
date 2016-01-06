@@ -80,3 +80,6 @@ generate_SIMPLE() ->
 generate_compOps() -> 
 	Operators = ["+" ,"*", "-", "div", "rem"],
 	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(100)}.
+
+
+
