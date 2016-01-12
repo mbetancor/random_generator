@@ -1,10 +1,9 @@
 -module(list_comprehension).
 -compile([export_all]).
 
-%% TODO: PARENTHESIS BETWEEN OPS!!!
-
-%% IDEA PARA PARENTHESIS:
-%%  random:uniform(4) abrir y cerrar paréntesis al azar.
+discover_type(X) when is_integer(X) -> int;
+discover_type(X) when is_float(X) -> f;
+discover_type(X) -> str.
 
 chosen_OPS(Ops) -> Num = random:uniform(length(Ops)), 
 	Elem = lists:nth(random:uniform(length(Ops)),Ops),
@@ -27,23 +26,32 @@ do_OPS([H|T]) ->
 	end,
 	do_OPS(T).
 
-do_SP_OPS([]) -> io:fwrite("~p ",[random:uniform(100000)]);	
-
-do_SP_OPS([H|T]) -> 
-	io:fwrite("~p ~s ",[random:uniform(100000), H]),
-	do_SP_OPS(T).
-
-
 generate() ->
-	Operators = ["/" ,"*", "-", "+"],
-	Operators_INT = [ "rem", "div","*", "-", "+"],
+	Operators = ["+" ,"*", "-", "/"], % div and rem removed because of floating numbers.
 	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
 	%% chosen_OPS(Comparators) ++ chosen_OPS(Operators).
 	%% COMPS = chosen_COMPS(Comparators),
-	case random:uniform(2) of
-		1 -> do_OPS(chosen_OPS(Operators));
-		_ -> do_SP_OPS(chosen_OPS(Operators_INT))
-	end.
+	do_OPS(chosen_OPS(Operators)).
+
+%% This method receives two parameters and it outputs a comparation between the two of them.
+
+generate_Comparation(X,Y) ->
+	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
+	Chosen_One = lists:nth(random:uniform(length(Comparators)),Comparators),
+	io:fwrite("~s", ["("]),
+	case discover_type(X) of
+		int -> io:fwrite("~p ",[X]);
+		f -> io:fwrite("~f ", [X]);
+		_ -> io:fwrite("~s ",["X "])
+	end,
+	io:fwrite("~s ", [Chosen_One]),
+	case discover_type(Y) of
+		int -> io:fwrite("~p ",[Y]);
+		f -> io:fwrite("~f ", [Y]);
+		_ -> io:fwrite("~s ",[" Y"])
+	end,
+	io:fwrite("~s", [")"]).
+
 
 generate2() ->
 	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
@@ -63,7 +71,7 @@ do_VARS([H|T]) -> io:fwrite("~n ~s = ",[H]),
 % DATA TYPES: Tuple, Map, List, 
 generate4() -> 
 	case random:uniform(2) of
-		1 -> io:fwrite("~p", [list_to_tuple(generate_Nums(random:uniform(10)))]);
+		1 ->  io:fwrite("~p", [ list_to_tuple(generate_Nums(random:uniform(10)))]);
 		_ -> io:fwrite("~p", [generate_Nums(random:uniform(10))])
 		end. 
 
@@ -72,14 +80,43 @@ generate4() ->
 
 generate_Nums(0) -> [];
 generate_Nums(N) -> [random:uniform(1000)|generate_Nums(N-1)].
-	
+
+%% This method generates a Simple list comprehension (only one var).
+
 generate_SIMPLE() ->
 	{OP, NUM} = generate_compOps(),
-	io:fwrite("~s~s~s~p~s~p~s", [ "[ X ", OP ," ", NUM, " || X <- ", generate_Nums(random:uniform(10)) ," ]"]).
+	io:fwrite("~s~s~p~s~p~s", [ "[ X ", OP , NUM, "|| X <- ", generate_Nums(random:uniform(10)), ", "]) , 
+	generate_Comparation("X", random:uniform(1000)),
+	io:fwrite ("~s", ["]" ]).
 
 generate_compOps() -> 
-	Operators = ["+" ,"*", "-", "div", "rem"],
-	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(100)}.
+	Operators = ["+" ,"*", "-", " div ", " rem "],
+	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(80)}.
 
+%% Generates a very basic function, only one variable.
+%% TODO: Expand it for more variables.
 
+%% PROBLEMA: Se puede quedar en un bucle infinito. 
+
+generate_fun() -> generate_fun(random:uniform(7)).
+
+generate_fun(0) -> io:fwrite("~s", ["myfun(_) -> false."]);
+generate_fun(N) ->
+io:fwrite( "~s",["myfun(X) when "]),
+generate_Comparation("X", random:uniform(100)),
+case random:uniform(2) of 
+	1 -> io:fwrite("~s", [lists:nth(random:uniform(5),[" and ", " or ", " andalso ", " orelse ", " xor ", " not "])]),
+	generate_Comparation("X", random:uniform(100));
+	_ -> []
+	end,
+ case random:uniform(5) of		  
+ 1 -> io:fwrite("~s~p" ,[" -> ", random:uniform(100)]);
+ 2 -> io:fwrite("~s~s" ,[" -> X ",lists:nth(random:uniform(4),[" + " ," * ", " - ", " / "])]), generate();
+ _ -> io:fwrite("~s", [ " -> myfun(" ]),
+ case random:uniform(2) of 1 -> io:fwrite("~s~s",[" X ",lists:nth(random:uniform(4),[" + " ," * ", " - ", " / "])]);
+ 	_ -> [] end,
+  generate(), io:fwrite("~s",[")"])
+end,
+io:fwrite("~s",["; "]),
+generate_fun(N-1).
 
