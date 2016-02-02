@@ -1,195 +1,191 @@
 -module(randerl).
--compile([export_all]).
+-export([main/0]).
+
+-define(ARITH_OPS, ["+", "*", "-", "/"]).
+-define(BOOL_OPS,  [" and ", " or ", " andalso ", " orelse ", " xor "]).
+-define(COMP_OPS,  ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"]).
+
+-define(FUN_NAMES, ["foo", "bar", "qux", "foobar", "fooqux"]).
+
+%% Outputs a simple random program. 
+main() ->
+    Fun_List = [{F,random:uniform(3)} || F <- ?FUN_NAMES],
+    Funs = lists:sublist(Fun_List, random:uniform(5)),
+    do_FUNS(Funs, Funs).
+
+do_FUNS([], _) ->
+    io:fwrite("~s", ["\n\n"]);
+do_FUNS([{Fun,Arity}|Rest], Funs) -> 
+    Fun_Args = lists:sublist(["X","Y","Z"], Arity),
+    io:fwrite("~s~s", [Fun,"("]),
+    display_args(Fun_Args),
+    io:fwrite("~s", [") when "]),
+    first_Cond(lists:sublist(Fun_Args, random:uniform(Arity))),
+    fun_loop(Fun, Fun_Args, random:uniform(6), Funs),
+    do_FUNS(Rest, Funs).
+
+first_Cond([Var]) -> 
+    io:fwrite("~s~s~s~p~s",["(",Var, " =< 0) ->", num(), ";\n"]); 
+first_Cond([FirstVar|Rest]) -> 
+    io:fwrite("~s~s~s",["(",FirstVar, " =< 0) or"]),
+    first_Cond(Rest).
+
+fun_loop(Fun,Vars,0,_) -> 
+    io:fwrite("~s~s",[Fun,"("]),
+    display_args(Vars),
+    io:fwrite("~s~p~s",[") -> ",num(),".\n\n"]);
+fun_loop(Fun,Vars,Times,Funs) ->
+    Temp_Args = lists:sublist(["P","Q","R","S"],random:uniform(4)),
+    io:fwrite("~s~s",[Fun,"("]),
+    display_args(Vars),
+    io:fwrite("~s",[") when "]), 
+    genComps(random:uniform(2),Vars),
+    io:fwrite("~s",[" -> \n"]),
+    vars_Declaration(Temp_Args,Funs++Vars),
+    io:fwrite("~s", ["A = trunc("]),
+    display_args([hd(Temp_Args)]),
+    io:fwrite("~s",[") div (round("]),
+    display_args([hd(lists:reverse(Temp_Args))]), 
+    io:fwrite("~s~p~s~p~s~p~s~p~s",[")+", random:uniform(100),") +", random:uniform(100), ",\nB = A rem ", random:uniform(100), "+",num(),",\n"]),
+    random_operations(Vars++["A","B"], ?ARITH_OPS),
+    io:fwrite("~s",[" ;\n\n"]),
+    fun_loop(Fun,Vars,Times-1,Funs).
+
+display_args([Elem]) -> 	
+    case discover_type(Elem) of
+	int -> io:fwrite("~p", [Elem]);
+	flo -> io:fwrite("~f", [Elem]);
+	str -> io:fwrite("~s", [Elem])
+    end;
+display_args([HList|TList]) -> 
+    case discover_type(HList) of
+	int -> io:fwrite("~p~s", [HList,","]);
+	flo -> io:fwrite("~f~s", [HList,","]);
+	str -> io:fwrite("~s~s", [HList,","])
+    end,
+    display_args(TList).
 
 %% Returns the type of the variable X.
 discover_type(X) when is_integer(X) -> int;
-discover_type(X) when is_float(X) -> f;
+discover_type(X) when is_float(X) -> flo;
 discover_type(_) -> str.
 
-generate_Comparation(X,Y) ->
-	Comparators = ["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"],
-	Chosen_One = lists:nth(random:uniform(length(Comparators)),Comparators),
-	io:fwrite("~s", ["("]),
-	case discover_type(X) of
-		int -> io:fwrite("~p ",[X]);
-		f -> io:fwrite("~f ", [X]);
-		_ -> io:fwrite("~s ",[X])
-	end,
-	io:fwrite("~s ", [Chosen_One]),
-	case discover_type(Y) of
-		int -> io:fwrite("~p ",[Y]);
-		f -> io:fwrite("~f ", [Y]);
-		_ -> io:fwrite("~s ",[Y])
-	end,
-	io:fwrite("~s", [")"]).
+%% Generates random comparisons. 
+genComps(1, Vars) ->
+    Comparator = lists:nth(random:uniform(8), ?COMP_OPS),
+    Not = lists:nth(random:uniform(2), [" not ", ""]),
+    io:fwrite("~s~s", [Not,"("]),
+    case random:uniform(3) of
+	1 -> io:fwrite("~p", [num()]);
+	_ -> io:fwrite("~s", [lists:nth(random:uniform(length(Vars)),Vars)])
+    end,
+    io:fwrite("~s", [Comparator]),
+    case random:uniform(3) of
+	1 -> io:fwrite("~p", [num()]);
+	_ -> io:fwrite("~s", [lists:nth(random:uniform(length(Vars)),Vars)])
+    end,
+    io:fwrite("~s", [") "]);
+genComps(N,Vars) -> 
+    Comparator = lists:nth(random:uniform(8), ?COMP_OPS),
+    Not     = lists:nth(random:uniform(2), [" not ", ""]),
+    Logical = lists:nth(random:uniform(5), ?BOOL_OPS),
+    io:fwrite("~s~s", [ Not,"("]),
+    case random:uniform(3) of
+	1 -> io:fwrite("~p",[num()]);
+	_ -> io:fwrite("~s",[lists:nth(random:uniform(length(Vars)),Vars)])
+    end,
+    io:fwrite("~s",[Comparator]),
+    case random:uniform(2) of
+	1 -> io:fwrite("~p",[num()]);
+	_ -> io:fwrite("~s",[lists:nth(random:uniform(length(Vars)),Vars)])
+    end,
+    io:fwrite("~s~s",[") ",Logical]),
+    genComps(N-1,Vars).
 
-display_args([Elem]) -> 	
-	case discover_type(Elem) of
-		int -> io:fwrite("~p",[Elem]);
-		f -> io:fwrite("~f",[Elem]);
-		_ -> io:fwrite("~s",[Elem])
-	end;
+recurs_decr(1,Possibilities) ->
+    display_args([lists:nth(random:uniform(length(Possibilities)),Possibilities)]),
+    io:fwrite("~s~p",["-", num()]);
+recurs_decr(N_Args,Possibilities) ->
+    display_args([lists:nth(random:uniform(length(Possibilities)),Possibilities)]),
+    io:fwrite("~s~p~s",["-", num(),", "]),
+    recurs_decr(N_Args-1,Possibilities).
 
-display_args([HList|TList]) -> 
-	case discover_type(HList) of
-		int -> io:fwrite("~p~s",[HList,","]);
-		f -> io:fwrite("~f~s",[HList,","]);
-		_ -> io:fwrite("~s~s",[HList,","])
-	end,
-	display_args(TList).
-num() -> case random:uniform(4) of
+op_Loops(1,Possibilities) ->
+    Tuples = [T || T <- Possibilities, is_tuple(T)],
+    Vars = Possibilities -- Tuples,
+    Elem = lists:nth(random:uniform(length(Vars)),Vars),
+    {Fun,Arity} = lists:nth(random:uniform(length(Tuples)),Tuples),
+    case random:uniform(3) of
+	1 -> io:fwrite("~s~s",[Fun,"("]),
+	     recurs_decr(Arity,Vars),
+	     io:fwrite("~s",	[ ") "]);
+	2 -> io:fwrite("~s",[Elem]);
+	_ -> io:fwrite("~p",[num()])
+    end;
+op_Loops(N,Possibilities) -> 
+    Operator = lists:nth(random:uniform(4), ?ARITH_OPS), 
+    Tuples = [T || T <- Possibilities, is_tuple(T)],
+    Vars = Possibilities -- Tuples,
+    Elem = lists:nth(random:uniform(length(Vars)),Vars),
+    {Fun,Arity} = lists:nth(random:uniform(length(Tuples)),Tuples),
+    case random:uniform(3) of
+	1 -> io:fwrite("~s~s",[Fun,"( "]),
+	     recurs_decr(Arity,Vars),
+	     io:fwrite("~s",[ ") "]);
+	2 -> io:fwrite("~s",[ Elem ]);
+	_ -> io:fwrite("~p",[num()])
+    end,
+    io:fwrite("~s",[Operator]),
+    op_Loops(N-1,Possibilities).
+
+vars_Declaration([], _) -> 
+    io:fwrite("~s", [""]);
+vars_Declaration([Var|Rest], Possibilities) -> 
+    io:fwrite("~s~s", [Var," = "]),
+    op_Loops(random:uniform(5), Possibilities),
+    io:fwrite("~s", [", \n"]),
+    vars_Declaration(Rest, [Var|Possibilities]).
+
+random_operations([Var],_) ->
+    io:fwrite("~s", [Var]);
+random_operations([Var|Rest],Operators) -> 
+    io:fwrite("~s~s",[Var,lists:nth(random:uniform(4),Operators)]),
+    random_operations(Rest,Operators).
+
+num() ->
+    case random:uniform(4) of
 	1 -> random:uniform(10);
 	2 -> random:uniform(500);
 	3 -> random:uniform(10000);
 	_ -> random:uniform()
-end.
+    end.
 
-generate_Nums(0) -> [];
-generate_Nums(N) -> [num()|generate_Nums(N-1)].
+%% ------------------------ UNUSED STUFF BELOW ----------------------------
+%% generate_Comparison(X,Y) ->
+%%     Chosen_One = lists:nth(random:uniform(length(?COMP_OPS)), ?COMP_OPS),
+%%     io:fwrite("~s", ["("]),
+%%     case discover_type(X) of
+%% 	int -> io:fwrite("~p ",[X]);
+%% 	f -> io:fwrite("~f ", [X]);
+%% 	_ -> io:fwrite("~s ",[X])
+%%     end,
+%%     io:fwrite("~s ", [Chosen_One]),
+%%     case discover_type(Y) of
+%% 	int -> io:fwrite("~p ",[Y]);
+%% 	f -> io:fwrite("~f ", [Y]);
+%% 	_ -> io:fwrite("~s ",[Y])
+%%     end,
+%%     io:fwrite("~s", [")"]).
 
+%% generate_Nums(0) -> [];
+%% generate_Nums(N) -> [num()|generate_Nums(N-1)].
 
-generate_LComprehension() ->
-	{OP, NUM} = generate_compOps(),
-	io:fwrite("~s~s~p~s~p~s", [ " List = [ Q ", OP , NUM, "|| Q <- ", generate_Nums(random:uniform(10)), ", "]) , 
-	generate_Comparation("Q", random:uniform(1000)),
-	io:fwrite ("~s", ["]" ]).
+%% generate_listComprehension() ->
+%%     {OP, NUM} = generate_compOps(),
+%%     io:fwrite("~s~s~p~s~p~s", [ " List = [ Q ", OP , NUM, "|| Q <- ", generate_Nums(random:uniform(10)), ", "]), 
+%%     generate_Comparison("Q", random:uniform(1000)),
+%%     io:fwrite ("~s", ["]" ]).
 
-generate_compOps() -> 
-	Operators = ["+" ,"*", "-", " / "],
-	{lists:nth(random:uniform(length(Operators)),Operators), random:uniform(1000)}.
+%% generate_compOps() -> 
+%%     {lists:nth(random:uniform(length(?ARITH_OPS)),?ARITH_OPS), random:uniform(1000)}.
 
-%% Generates random comparations. 
-genComps(1,Vars) -> 
-	Comparator = lists:nth(random:uniform(8),["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"]),
-	Not = lists:nth(random:uniform(2),[" not ", ""]),
-	io:fwrite("~s~s",[Not,"("]),
-	case random:uniform(3) of
-		1 -> io:fwrite("~p",[num()]);
-		_ -> io:fwrite("~s",[lists:nth(random:uniform(length(Vars)),Vars)])
-	end,
-	io:fwrite("~s",[Comparator]),
-	case random:uniform(3) of
-		1 -> io:fwrite("~p",[num()]);
-		_ -> io:fwrite("~s",[lists:nth(random:uniform(length(Vars)),Vars)])
-	end,
-	io:fwrite("~s",[") "]);
-
-genComps(N,Vars) -> 
-	Comparator = lists:nth(random:uniform(8),["=:=", "=/=", "==", "/=", ">=", "=<", ">", "<"]),
-	Not     = lists:nth(random:uniform(2),[" not ", ""]),
-	Logical = lists:nth(random:uniform(5), [" and ", " or ", " andalso ", " orelse ", " xor "]),
-
-	io:fwrite("~s~s",[ Not,"("]),
-	case random:uniform(3) of
-		1 -> io:fwrite("~p",[num()]);
-		_ -> io:fwrite("~s",[lists:nth(random:uniform(length(Vars)),Vars)])
-	end,
-	io:fwrite("~s",[Comparator]),
-	case random:uniform(2) of
-		1 -> io:fwrite("~p",[num()]);
-		_ -> io:fwrite("~s",[lists:nth(random:uniform(length(Vars)),Vars)])
-	end,
-	io:fwrite("~s~s",[") ",Logical]),
-	genComps(N-1,Vars).
-
-
-recurs_decr(1,Posibilities) -> 
-	display_args([lists:nth(random:uniform(length(Posibilities)),Posibilities)]),
-	io:fwrite("~s~p",["-", num()]);
-
-recurs_decr(N_Args,Posibilities) -> 
-	display_args([lists:nth(random:uniform(length(Posibilities)),Posibilities)]),
-	io:fwrite("~s~p~s",["-", num(),", "]),
-	recurs_decr(N_Args-1,Posibilities).
-
-op_Loops(1,Posibilities) ->
-	Tuples = [ T || T <- Posibilities, is_tuple(T)],
-	Vars = Posibilities -- Tuples,
-	Elem = lists:nth(random:uniform(length(Vars)),Vars),
-	{Fun,Arity} = lists:nth(random:uniform(length(Tuples)),Tuples),
-	case random:uniform(3) of
-		1 -> io:fwrite("~s~s",[Fun,"( "]),
-			recurs_decr(Arity,Vars),
-			io:fwrite("~s",	[ ") "]);
-		2-> io:fwrite("~s",[Elem]);
-		_ -> io:fwrite("~p",[num()])
-	end;
-	
-op_Loops(N,Posibilities) -> 
-	Operator = lists:nth(random:uniform(4),["+" ,"*", "-", "/"]), 
-	Tuples = [ T || T <- Posibilities, is_tuple(T)],
-	Vars = Posibilities -- Tuples,
-	Elem = lists:nth(random:uniform(length(Vars)),Vars),
-	{Fun,Arity} = lists:nth(random:uniform(length(Tuples)),Tuples),
-	case random:uniform(3) of
-		1 -> io:fwrite("~s~s",[Fun,"( "]),
-			recurs_decr(Arity,Vars),
-			 io:fwrite("~s",[ ") "]);
-		2 -> io:fwrite("~s",[ Elem ]);
-		_ -> io:fwrite("~p",[num()])
-	end,
-	io:fwrite("~s",[Operator]),
-	op_Loops(N-1,Posibilities).
-
-
-vars_Declaration([],_)-> 
-	io:fwrite("~s",[""]);
-
-vars_Declaration([Var|Rest],Posibilities) -> 
-	io:fwrite("~s~s",[Var," = "]),
-	op_Loops(random:uniform(5),Posibilities),
-	io:fwrite("~s",[", \n"]),
-	vars_Declaration(Rest,[Var|Posibilities]).
-
-random_operations([Var],_) -> io:fwrite("~s",[Var]);
-random_operations([Var|Rest],Operators) -> 
-	io:fwrite("~s~s",[Var,lists:nth(random:uniform(4),Operators)]),
-	random_operations(Rest,Operators).
-
-fun_loop(Fun,Vars,0,_) -> 
-	io:fwrite("~s~s",[Fun,"("]),
-	display_args(Vars),
-	io:fwrite("~s~p~s",[") -> ",num(),".\n\n"]);
-
-fun_loop(Fun,Vars,Times,Funs) ->
-	Temp_Args = lists:sublist(["P","Q","R","S"],random:uniform(4)),
-	io:fwrite("~s~s",[Fun,"("]),
-	display_args(Vars),
-	io:fwrite("~s",[") when "]), 
-	genComps(random:uniform(2),Vars),
-	io:fwrite("~s",[" -> \n"]),
-	vars_Declaration(Temp_Args,Funs++Vars),
-	io:fwrite("~s", ["A =  trunc("]),
-	display_args([hd(Temp_Args)]),
-	io:fwrite("~s",[") div (round("]),
-	display_args([hd(lists:reverse(Temp_Args))]), 
-	io:fwrite("~s~p~s~p~s~p~s~p~s",[")+", random:uniform(100),") +", random:uniform(100), ",\nB = A rem ", random:uniform(100), "+",num(),",\n"]),
-	random_operations(Vars++["A","B"],["+" ,"*", "-", "/"]),
-	io:fwrite("~s",[" ;\n\n"]),
-	fun_loop(Fun,Vars,Times-1,Funs).
-
-first_Cond([Var]) -> 
-	io:fwrite("~s~s~s~p~s",["(",Var, " =< 0) ->", num(), ";\n"]); 
-first_Cond([FirstVar|Rest]) -> 
-	io:fwrite("~s~s~s",["(",FirstVar, " =< 0) or"]),
-	first_Cond(Rest).
-
-do_FUNS([],_) ->
-	io:fwrite("~s",["\n\n"]);
-do_FUNS([{Fun,Arity}|Rest],Funs) -> 
-	Fun_Args = lists:sublist(["X","Y","Z"],Arity),
-	io:fwrite("~s~s",[Fun,"("]),
-	display_args(Fun_Args),
-	io:fwrite("~s",[") when "]),
-	first_Cond(lists:sublist(Fun_Args,random:uniform(Arity))),
-	fun_loop(Fun,Fun_Args,random:uniform(6),Funs),
-	do_FUNS(Rest,Funs).
-
-mainf() ->
-	Fun_List = [{"foo",random:uniform(3)}, {"bar",random:uniform(3)},{"qux",random:uniform(3)}, {"foobar",random:uniform(3)},{"fooqux",random:uniform(3)}],
-	Funs = lists:sublist(Fun_List,random:uniform(5)),
-	do_FUNS(Funs,Funs),
-	generate_LComprehension().
-% 	io:fwrite("~s",["main() -> [", "]"]).
-
-% random_funs(Funs,Times) -> {Fun,Arity} = lists:nth(random:uniform(length(Funs)),Funs),
